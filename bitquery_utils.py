@@ -35,23 +35,25 @@ def run_bitquery(query: str, variables: dict = {}):
 # 1. Get Top Trending Tokens
 def get_trending_tokens():
     query = """
-    query TrendingTokens {
-      Solana {
-        DEXTradeByTokens(
-          limit: { count: 10 }
-          orderBy: { descendingByField: "tradesCountWithUniqueTraders" }
-        ) {
-          Trade {
-            Currency {
-              Name
-              Symbol
-              MintAddress
-            }
-          }
-          tradesCountWithUniqueTraders: count(distinct: Transaction_Signer)
+   query TrendingTokens {
+  Solana(network: solana, dataset: realtime) {
+    DEXTradeByTokens(
+      limit: {count: 10}
+      orderBy: {descendingByField: "tradesCountWithUniqueTraders"}
+      where: {Trade: {Currency: {MintAddress: {notIn: ["So11111111111111111111111111111111111111112","11111111111111111111111111111111"]}}}}
+    ) {
+      Trade {
+        Currency {
+          Name
+          Symbol
+          MintAddress
         }
       }
+      tradesCountWithUniqueTraders: count(distinct: Transaction_Signer)
     }
+  }
+}
+
     """
     return run_bitquery(query)
 
