@@ -36,6 +36,17 @@ def ai_trading_loop():
                 time.sleep(30)
                 continue
 
+            print("Fetching wallet balances...")
+            wallet_data = get_wallet_balances(WALLET_ADDRESS)
+            balances = wallet_data.get("data", {}).get("Solana", {}).get("BalanceUpdates", [])
+
+            owned_tokens_mint_addresses = set()
+            for balance in balances:
+                currency = balance.get("BalanceUpdate", {}).get("Currency", {})
+                mint_address = currency.get("MintAddress")
+                if mint_address:
+                    owned_tokens_mint_addresses.add(mint_address)
+
             for token in tokens:
                 currency = token["Trade"]["Currency"]
                 mint = currency["MintAddress"]
@@ -70,19 +81,21 @@ def ai_trading_loop():
                     if total_balance > 0:
                         holder_concentration = round(100 * top_holder_balance / total_balance, 2)
 
-                wallet_data = get_wallet_balances(WALLET_ADDRESS)
-
                 # TODO: Parse liquidity_data to extract relevant liquidity in USD for this token
                 liquidity_usd = "See liquidity_data output"
+
+                wallet_holds_token = mint in owned_tokens_mint_addresses
 
                 # AI Decision Making
                 token_data = {
                     "name": name,
                     "symbol": symbol,
+                    "mint_address": mint,
                     "market_cap": marketcap,
                     "liquidity_usd": liquidity_usd,
                     "volatility": volatility,
-                    "holder_concentration": holder_concentration
+                    "holder_concentration": holder_concentration,
+                    "wallet_holds_token": wallet_holds_token
                 }
 
                 decision = analyze_token_and_decide(token_data)
@@ -90,7 +103,20 @@ def ai_trading_loop():
 
                 # Placeholder for trade execution logic
                 if decision == "Buy":
-                    print(f"Would execute BUY for {symbol}")
+                    if wallet_holds_token:
+                        print(f"Already holding {symbol}, considering HOLD or additional BUY logic.")
+                    else:
+                        print(f"Would execute BUY for {symbol}")
+                elif decision == "Sell":
+                    if wallet_holds_token:
+                        print(f"Would execute SELL for {symbol}")
+                    else:
+                        print(f"Cannot SELL {symbol}, wallet doesn't hold it.")
+                elif decision == "Hold":
+                    if wallet_holds_token:
+                        print(f"Holding {symbol}.")
+                    else:
+                        print(f"Cannot HOLD {symbol}, wallet doesn't hold it.")
                 elif decision == "Avoid":
                     print(f"Skipping {symbol} due to risk factors.")
                 else:
