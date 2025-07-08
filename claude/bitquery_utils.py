@@ -190,6 +190,72 @@ def get_top_holders(mint_address: str):
     return run_bitquery(query)
 
 
+# 7. Get Latest Trades of a toke
+
+def get_trades_of_token(base_mint: str, quote_mint: str, limit: int = 10):
+    query = f"""
+    query TokenTrades {{
+      Solana(network: solana, dataset: realtime) {{
+        DEXTrades(
+          limit: {{ count: {limit} }}
+          where: {{
+            Trade: {{
+              Buy: {{ Currency: {{ MintAddress: {{ is: "{base_mint}" }} }} }},
+              Sell: {{ Currency: {{ MintAddress: {{ is: "{quote_mint}" }} }} }}
+            }}
+          }}
+          orderBy: {{ descending: Block_Time }}
+        ) {{
+          Block {{
+            Time
+          }}
+          Transaction {{
+            Signature
+          }}
+          Trade {{
+            Buy {{
+              Amount
+              Currency {{ Symbol }}
+            }}
+            Sell {{
+              Amount
+              Currency {{ Symbol }}
+            }}
+            BuyPrice
+          }}
+        }}
+      }}
+    }}
+    """
+    return run_bitquery(query)
+
+
+# 10. Get OHLCV Using Pair Address
+
+def get_ohlcv_by_pair(pair_address: str, interval: str = "15m"):
+    query = f"""
+    query GetOHLC {{
+      Solana {{
+        DEXTrades(
+          where: {{ Trade: {{ MarketAddress: {{ is: "{pair_address}" }} }} }}
+          orderBy: {{ ascending: Block_Time }}
+        ) {{
+          timeInterval {{
+            minute(count: 15)
+          }}
+          volume: Trade_Amount
+          open: minimum(of: Trade_BuyPrice)
+          high: maximum(of: Trade_BuyPrice)
+          low: minimum(of: Trade_BuyPrice)
+          close: maximum(of: Trade_BuyPrice)
+        }}
+      }}
+    }}
+    """
+    return run_bitquery(query)
+
+
+
 ### ----------- WebSocket Stream Example ----------- ###
 
 async def subscribe_to_sol_trades():
