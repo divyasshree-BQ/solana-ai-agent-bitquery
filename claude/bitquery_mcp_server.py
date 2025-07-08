@@ -1,49 +1,39 @@
-# claude/bitquery_mcp_server.py
-import sys
-import json
-import os
-import bitquery_utils as bq
 import config
+import bitquery_utils as bq
+from mcp.server.fastmcp import FastMCP
 
 WALLET_ADDRESS = config.WALLET_ADDRESS
+mcp = FastMCP("BitQuery MCP Server")
 
-# Registry of allowed methods
-METHODS = {
-    "get_trending_tokens": bq.get_trending_tokens,
-    "get_wallet_balances": lambda: bq.get_wallet_balances(WALLET_ADDRESS),
-    "get_marketcap": bq.get_marketcap,
-    "get_token_volatility": bq.get_token_volatility,
-    "get_top_liquidity_pools": bq.get_top_liquidity_pools,
-    "get_top_holders": bq.get_top_holders,
-}
+@mcp.tool()
+def get_trending_tokens():
+    """Get trending cryptocurrency tokens."""
+    return bq.get_trending_tokens()
 
-def main():
-    for line in sys.stdin:
-        try:
-            input_data = json.loads(line)
-            method_name = input_data.get("method")
-            params = input_data.get("params", {})
+@mcp.tool()
+def get_wallet_balances():
+    """Get wallet balances for configured wallet address."""
+    return bq.get_wallet_balances(WALLET_ADDRESS)
 
-            if method_name not in METHODS:
-                raise ValueError(f"Unknown method: {method_name}")
+@mcp.tool()
+def get_marketcap(token_address: str):
+    """Get market capitalization data for a token."""
+    return bq.get_marketcap(token_address=token_address)
 
-            method = METHODS[method_name]
+@mcp.tool()
+def get_token_volatility(token_address: str):
+    """Get volatility data for a token."""
+    return bq.get_token_volatility(token_address=token_address)
 
-            # Call method with or without params
-            if callable(method):
-                if isinstance(params, dict):
-                    result = method(**params) if params else method()
-                else:
-                    result = method()
-            else:
-                raise ValueError("Invalid method reference")
+@mcp.tool()
+def get_top_liquidity_pools():
+    """Get top liquidity pools."""
+    return bq.get_top_liquidity_pools()
 
-            sys.stdout.write(json.dumps({"result": result}) + "\n")
-            sys.stdout.flush()
-
-        except Exception as e:
-            sys.stdout.write(json.dumps({"error": str(e)}) + "\n")
-            sys.stdout.flush()
+@mcp.tool()
+def get_top_holders(token_address: str):
+    """Get top holders for a token."""
+    return bq.get_top_holders(token_address=token_address)
 
 if __name__ == "__main__":
-    main()
+    mcp.run()
