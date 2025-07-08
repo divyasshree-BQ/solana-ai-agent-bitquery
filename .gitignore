@@ -4,3 +4,4 @@ config.py
 ./claude/config.py
 claude/__pycache__/bitquery_utils.cpython-312.pyc
 .gitignore
+claude/__pycache__/config.cpython-312.pyc

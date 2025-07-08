@@ -41,9 +41,22 @@ def get_trades_of_token(base_token: str, quote_token: str, limit: int = 10):
     return bq.get_trades_of_token(base_mint=base_token, quote_mint=quote_token, limit=limit)
 
 @mcp.tool()
-def get_ohlcv_by_pair(pair_address: str, interval: str = "15m"):
-    """Get OHLCV chart data by pair address."""
-    return bq.get_ohlcv_by_pair(pair_address=pair_address, interval=interval)
+def get_ohlcv_custom(
+    mint_address: str,
+    market_address: str,
+    price_asymmetry_lt: float = 0.1,
+    limit: int = 10,
+    interval_minutes: int = 1
+):
+    """Get OHLCV data by token mint and market address with price asymmetry filter."""
+    return bq.get_ohlcv_by_pair(
+        mint_address=mint_address,
+        market_address=market_address,
+        price_asymmetry_lt=price_asymmetry_lt,
+        limit=limit,
+        interval_minutes=interval_minutes
+    )
+
 
 if __name__ == "__main__":
     mcp.run()

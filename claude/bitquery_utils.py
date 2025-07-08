@@ -232,27 +232,44 @@ def get_trades_of_token(base_mint: str, quote_mint: str, limit: int = 10):
 
 # 10. Get OHLCV Using Pair Address
 
-def get_ohlcv_by_pair(pair_address: str, interval: str = "15m"):
+def get_ohlcv_by_pair(
+    mint_address: str,
+    market_address: str,
+    price_asymmetry_lt: float = 0.1,
+    limit: int = 10,
+    interval_minutes: int = 1
+):
     query = f"""
-    query GetOHLC {{
+    query GetOHLCV {{
       Solana {{
-        DEXTrades(
-          where: {{ Trade: {{ MarketAddress: {{ is: "{pair_address}" }} }} }}
-          orderBy: {{ ascending: Block_Time }}
-        ) {{
-          timeInterval {{
-            minute(count: 15)
+        DEXTradeByTokens(
+          limit: {{count: {limit}}}
+          orderBy: {{descendingByField: "Block_Timefield"}}
+          where: {{
+            Trade: {{
+              Currency: {{ MintAddress: {{ is: "{mint_address}" }} }},
+              Market: {{ MarketAddress: {{ is: "{market_address}" }} }},
+              PriceAsymmetry: {{ lt: {price_asymmetry_lt} }}
+            }}
           }}
-          volume: Trade_Amount
-          open: minimum(of: Trade_BuyPrice)
-          high: maximum(of: Trade_BuyPrice)
-          low: minimum(of: Trade_BuyPrice)
-          close: maximum(of: Trade_BuyPrice)
+        ) {{
+          Block {{
+            Timefield: Time(interval: {{in: minutes, count: {interval_minutes}}})
+          }}
+          volume: sum(of: Trade_Amount)
+          Trade {{
+            high: Price(maximum: Trade_Price)
+            low: Price(minimum: Trade_Price)
+            open: Price(minimum: Block_Slot)
+            close: Price(maximum: Block_Slot)
+          }}
+          count
         }}
       }}
     }}
     """
     return run_bitquery(query)
+
 
 
 
