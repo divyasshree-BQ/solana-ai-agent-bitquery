@@ -1,9 +1,14 @@
 import config
 import bitquery_utils as bq
-from mcp.server.fastmcp import FastMCP
-
+from fastmcp import FastMCP
 WALLET_ADDRESS = config.WALLET_ADDRESS
 mcp = FastMCP("BitQuery MCP Server")
+
+
+@mcp.tool()
+def get_bitcoin_data():
+    """Get Bitcoin data."""
+    return bq.get_bitcoin_data()
 
 @mcp.tool()
 def get_trending_tokens():
@@ -59,4 +64,4 @@ def get_ohlcv_custom(
 
 
 if __name__ == "__main__":
-    mcp.run()
+    mcp.run(transport="http", host="127.0.0.1", port=8000, path="/mcp") #streamable htttp

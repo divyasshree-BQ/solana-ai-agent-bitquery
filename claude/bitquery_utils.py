@@ -10,6 +10,7 @@ load_dotenv()
 
 BITQUERY_REST_URL = "https://streaming.bitquery.io/eap"
 BITQUERY_WS_URL = "wss://streaming.bitquery.io/eap"
+BITQUERY_V1_URL = "https://graphql.bitquery.io"
 BITQUERY_TOKEN = config.BITQUERY_TOKEN
 wallet_address = config.WALLET_ADDRESS
 
@@ -20,12 +21,27 @@ HEADERS = {
 
 ### ----------- REST API Queries ----------- ###
 
+
 def run_bitquery(query: str, variables: dict = {}):
     payload = json.dumps({
         "query": query,
         "variables": json.dumps(variables)
     })
     response = requests.post(BITQUERY_REST_URL, headers=HEADERS, data=payload)
+    
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise Exception(f"Query failed with status {response.status_code}: {response.text}")
+    
+
+
+def run_bitquery_v1(query: str, variables: dict = {}):
+    payload = json.dumps({
+        "query": query,
+        "variables": json.dumps(variables)
+    })
+    response = requests.post(BITQUERY_V1_URL, headers=HEADERS, data=payload)
     
     if response.status_code == 200:
         return response.json()
@@ -333,4 +349,44 @@ async def subscribe_to_sol_trades():
     finally:
         await transport.close()
         print("Transport closed")
+
+
+
+def get_bitcoin_data():
+    query = """
+   {
+  bitcoin(network: bitcoin) {
+    coinpath(
+      date: {after: "2025-07-01"}
+      options: {limit: 50, desc: ["block.height","transaction.index"]}
+      initialAddress: {is: "bc1qm34lsc65zpw79lxes69zkqmk6ee3ewf0j77s3h"}
+    ) {
+      amount(in: USD)
+      block {
+        height
+      }
+      sender {
+        address
+        type
+      }
+      receiver {
+        address
+        type
+      }
+      transaction {
+        hash
+        index
+        valueIn
+        valueOut
+      }
+      currency {
+        name
+      }
+    }
+  }
+}
+
+   
+    """
+    return run_bitquery_v1(query)
 
